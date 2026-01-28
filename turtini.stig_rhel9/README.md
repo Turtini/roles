@@ -1,4 +1,7 @@
 # turtini.stig_rhel9
+
+🔗 **Canonical URL:** https://turtini.com/github/stig-rhel9
+
 Reference Ansible role implementing selected DISA STIG controls for RHEL 9
 
 ## Purpose
