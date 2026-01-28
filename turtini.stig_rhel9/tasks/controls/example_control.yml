@@ -1,0 +1,13 @@
+---
+# Example control implementation file.
+# Copy this pattern per control (one file per STIG control).
+
+- name: "STIG {{ _turtini_control_id }} | Example placeholder control"
+  ansible.builtin.debug:
+    msg:
+      - "Running control {{ _turtini_control_id }}"
+      - "apply={{ turtini_stig_apply | bool }}, audit_only={{ turtini_stig_audit_only | bool }}"
+      - "tags={{ _turtini_control_tags | default([]) }}"
+      - "categories={{ _turtini_control_categories | default([]) }}"
+  when: _turtini_run_control | bool
+  tags: [controls]
