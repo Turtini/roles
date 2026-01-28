@@ -1,0 +1,15 @@
+# Ansible retry files
+*.retry
+
+# Temporary files
+*.log
+*.tmp
+
+# Local overrides
+group_vars/all/local.yml
+host_vars/*/local.yml
+
+# Editor / OS noise
+.vscode/
+.idea/
+.DS_Store

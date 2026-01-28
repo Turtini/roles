@@ -1,0 +1,37 @@
+---
+# Default behavior is SAFE:
+# - audit-only (no changes) unless explicitly enabled
+# - allow running on RHEL only, unless rebuilds are explicitly allowed
+
+# Execution mode (choose exactly one)
+turtini_stig_apply: false
+turtini_stig_audit_only: true
+
+# Allow RHEL-compatible rebuilds (Rocky/Alma/Oracle/CentOS Stream, etc.)
+# Note: even when allowed, this role is still scoped to major version 9.
+turtini_stig_allow_rebuilds: false
+
+# Print preflight summary details
+turtini_stig_preflight_verbose: true
+
+# Recognized distributions for friendly gating/messaging
+turtini_stig_supported_distributions:
+  - RedHat
+  - Rocky
+  - AlmaLinux
+  - OracleLinux
+  - CentOS
+
+# Safety toggles / patterns we’ll use as we add controls
+# These allow “opt-in” for higher-impact changes without making the role scary.
+turtini_stig_allow_reboot: false
+turtini_stig_allow_service_restart: true
+
+# Tagging / control selection patterns (future-friendly)
+# When true, we’ll allow selecting subsets of controls by category/tag.
+turtini_stig_enable_control_selection: false
+
+# Placeholder lists for future expansion (kept empty by default)
+# Example future use: only apply controls listed here.
+turtini_stig_only_controls: []
+turtini_stig_skip_controls: []

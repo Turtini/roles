@@ -1,0 +1,81 @@
+---
+# Preflight safety checks for RHEL 9 STIG reference role
+
+- name: Preflight | Require facts
+  ansible.builtin.assert:
+    that:
+      - ansible_facts is defined
+      - ansible_facts['os_family'] is defined
+  fail_msg: >
+    Facts are not available. Ensure gather_facts: true or run the setup module.
+
+- name: Preflight | Verify supported platform (RHEL 9 only)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['os_family'] == 'RedHat'
+      - (ansible_facts['distribution'] in turtini_stig_supported_distributions)
+      - (ansible_facts['distribution_major_version'] | int) == 9
+  fail_msg: >
+    Unsupported platform. This role supports RHEL 9 (and compatible rebuilds if enabled).
+    Detected: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
+
+- name: Preflight | Require privilege escalation
+  ansible.builtin.assert:
+    that:
+      - (ansible_facts['user_id'] | int) == 0 or (ansible_become is defined and ansible_become | bool)
+  fail_msg: >
+    This role must run with elevated privileges. Re-run with become: true (or as root).
+
+- name: Preflight | Enforce 'safe-by-default' gate
+  ansible.builtin.assert:
+    that:
+      - turtini_stig_apply | bool or turtini_stig_audit_only | bool
+      - not (turtini_stig_apply | bool and turtini_stig_audit_only | bool)
+  fail_msg: >
+    Invalid mode. Set exactly one:
+      - turtini_stig_apply=true (apply changes)
+      - turtini_stig_audit_only=true (report only)
+
+- name: Preflight | Read SELinux status
+  ansible.builtin.command: getenforce
+  register: turtini_getenforce
+  changed_when: false
+  failed_when: false
+
+- name: Preflight | Read FIPS status (if present)
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: turtini_fips_enabled
+  changed_when: false
+  failed_when: false
+
+- name: Preflight | Read current crypto policy (if present)
+  ansible.builtin.command: update-crypto-policies --show
+  register: turtini_crypto_policy
+  changed_when: false
+  failed_when: false
+
+- name: Preflight | Capture kernel cmdline
+  ansible.builtin.command: cat /proc/cmdline
+  register: turtini_cmdline
+  changed_when: false
+  failed_when: false
+
+- name: Preflight | Summarize preflight facts
+  ansible.builtin.debug:
+    msg:
+      - "Mode: apply={{ turtini_stig_apply | bool }}, audit_only={{ turtini_stig_audit_only | bool }}"
+      - "Platform: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+      - "SELinux: {{ (turtini_getenforce.stdout | default('unknown')) | trim }}"
+      - "FIPS enabled: {{ (turtini_fips_enabled.stdout | default('unknown')) | trim }}"
+      - "Crypto policy: {{ (turtini_crypto_policy.stdout | default('unknown')) | trim }}"
+      - "Kernel cmdline: {{ (turtini_cmdline.stdout | default('unknown')) | trim }}"
+  when: turtini_stig_preflight_verbose | bool
+
+- name: Preflight | Hard fail if incompatible rebuilds are detected (optional)
+  ansible.builtin.assert:
+    that:
+      - ansible_facts['distribution'] == 'RedHat' or turtini_stig_allow_rebuilds | bool
+  fail_msg: >
+  Unsupported platform detected.
+  This role supports RHEL 9 (and compatible rebuilds if enabled).
+  Detected: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
