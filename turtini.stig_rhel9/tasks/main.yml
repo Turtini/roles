@@ -1,61 +1,124 @@
 ---
+# Main task entrypoint for turtini.stig_rhel9
+# Order matters:
+# 1. Preflight safety checks
+# 2. Normalize control selection inputs
+# 3. Execute controls (opt-in, safe-by-default)
+
 - name: Include preflight safety checks
   ansible.builtin.include_tasks: preflight.yml
   tags: [preflight]
 
 - name: Initialize control selection defaults (safe)
   ansible.builtin.set_fact:
-    _turtini_controls_include: "{{ (turtini_stig_controls_include | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
-    _turtini_controls_exclude: "{{ (turtini_stig_controls_exclude | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
-    _turtini_tags_include: "{{ (turtini_stig_tags_include | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
-    _turtini_tags_exclude: "{{ (turtini_stig_tags_exclude | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
-    _turtini_categories_include: "{{ (turtini_stig_categories_include | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
-    _turtini_categories_exclude: "{{ (turtini_stig_categories_exclude | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
+    _turtini_controls_include: >-
+      {{
+        (turtini_stig_controls_include | default([]))
+        | map('string') | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+    _turtini_controls_exclude: >-
+      {{
+        (turtini_stig_controls_exclude | default([]))
+        | map('string') | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+    _turtini_tags_include: >-
+      {{
+        (turtini_stig_tags_include | default([]))
+        | map('string') | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+    _turtini_tags_exclude: >-
+      {{
+        (turtini_stig_tags_exclude | default([]))
+        | map('string') | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+    _turtini_categories_include: >-
+      {{
+        (turtini_stig_categories_include | default([]))
+        | map('string') | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+    _turtini_categories_exclude: >-
+      {{
+        (turtini_stig_categories_exclude | default([]))
+        | map('string') | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
   tags: [always]
+
+# ==========================================================
+# Controls
+# ==========================================================
 
 - name: Controls | Password aging (login.defs)
   ansible.builtin.include_tasks: controls/password_aging.yml
   vars:
     _turtini_control_id: "password-aging"
-    _turtini_control_tags: ["password-aging", "auth", "stig"]
-    _turtini_control_categories: ["auth"]
+    _turtini_control_tags:
+      - auth
+      - password-aging
+    _turtini_control_categories:
+      - auth
     _turtini_run_control: >-
       {{
         (not (turtini_stig_enable_control_selection | bool))
         or
         (
           (
-            (_turtini_controls_include | length == 0) or (_turtini_control_id in _turtini_controls_include)
+            (_turtini_controls_include | length == 0)
+            or
+            (_turtini_control_id in _turtini_controls_include)
           )
           and
           (
-            (_turtini_controls_exclude | length == 0) or (_turtini_control_id not in _turtini_controls_exclude)
+            (_turtini_controls_exclude | length == 0)
+            or
+            (_turtini_control_id not in _turtini_controls_exclude)
           )
           and
           (
             (_turtini_tags_include | length == 0)
             or
-            ((_turtini_control_tags | default([])) | intersect(_turtini_tags_include) | length > 0)
+            ((_turtini_control_tags | default([]))
+              | intersect(_turtini_tags_include)
+              | length > 0)
           )
           and
           (
             (_turtini_tags_exclude | length == 0)
             or
-            ((_turtini_control_tags | default([])) | intersect(_turtini_tags_exclude) | length == 0)
+            ((_turtini_control_tags | default([]))
+              | intersect(_turtini_tags_exclude)
+              | length == 0)
           )
           and
           (
             (_turtini_categories_include | length == 0)
             or
-            ((_turtini_control_categories | default([])) | intersect(_turtini_categories_include) | length > 0)
+            ((_turtini_control_categories | default([]))
+              | intersect(_turtini_categories_include)
+              | length > 0)
           )
           and
           (
             (_turtini_categories_exclude | length == 0)
             or
-            ((_turtini_control_categories | default([])) | intersect(_turtini_categories_exclude) | length == 0)
+            ((_turtini_control_categories | default([]))
+              | intersect(_turtini_categories_exclude)
+              | length == 0)
           )
         )
       }}
-  when: _turtini_run_control | bool
-  tags: [controls, auth, password-aging]
+  tags:
+    - controls
+    - auth
+    - password-aging
