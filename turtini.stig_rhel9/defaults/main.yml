@@ -45,3 +45,8 @@ turtini_stig_pass_max_days: 60
 turtini_stig_pass_min_days: 1
 turtini_stig_pass_warn_age: 7
 
+# Account lockout targets (pam_faillock via /etc/security/faillock.conf)
+turtini_stig_faillock_deny: 3
+turtini_stig_faillock_fail_interval: 900   # seconds
+turtini_stig_faillock_unlock_time: 0       # 0 = requires admin unlock; set to 900 for 15 min
+turtini_stig_faillock_even_deny_root: true
