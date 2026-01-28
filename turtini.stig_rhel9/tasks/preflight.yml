@@ -6,76 +6,197 @@
     that:
       - ansible_facts is defined
       - ansible_facts['os_family'] is defined
-  fail_msg: >
-    Facts are not available. Ensure gather_facts: true or run the setup module.
+      - ansible_facts['distribution'] is defined
+      - ansible_facts['distribution_major_version'] is defined
+    fail_msg: >-
+      Facts are not available. Ensure you are gathering facts (gather_facts: true)
+      or run the setup module before this role.
+  tags: [preflight]
 
-- name: Preflight | Verify supported platform (RHEL 9 only)
+- name: Preflight | Derive platform flags
+  ansible.builtin.set_fact:
+    _turtini_dist: "{{ ansible_facts['distribution'] | default('unknown') }}"
+    _turtini_major: "{{ (ansible_facts['distribution_major_version'] | default('0')) | int }}"
+    _turtini_is_redhat_family: "{{ (ansible_facts['os_family'] | default('')) == 'RedHat' }}"
+    _turtini_is_rhel: "{{ (ansible_facts['distribution'] | default('')) == 'RedHat' }}"
+    _turtini_is_supported_dist: "{{ (ansible_facts['distribution'] | default('')) in (turtini_stig_supported_distributions | default(['RedHat'])) }}"
+    _turtini_is_major9: "{{ ((ansible_facts['distribution_major_version'] | default('0')) | int) == 9 }}"
+  tags: [preflight]
+
+- name: Preflight | Verify supported platform (RHEL 9 only, unless rebuilds enabled)
   ansible.builtin.assert:
     that:
-      - ansible_facts['os_family'] == 'RedHat'
-      - (ansible_facts['distribution'] in turtini_stig_supported_distributions)
-      - (ansible_facts['distribution_major_version'] | int) == 9
-  fail_msg: >
-    Unsupported platform. This role supports RHEL 9 (and compatible rebuilds if enabled).
-    Detected: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
+      - _turtini_is_redhat_family
+      - _turtini_is_major9
+      - _turtini_is_rhel or (turtini_stig_allow_rebuilds | bool and _turtini_is_supported_dist)
+    fail_msg: >-
+      Unsupported platform for this role.
+
+      This role targets: RHEL 9 (major version 9).
+      By default, it runs ONLY on Red Hat Enterprise Linux.
+
+      If you want to allow RHEL-compatible rebuilds (Rocky/Alma/Oracle/CentOS Stream, etc),
+      set: turtini_stig_allow_rebuilds: true
+
+      Detected:
+        os_family={{ ansible_facts['os_family'] | default('unknown') }}
+        distribution={{ ansible_facts['distribution'] | default('unknown') }}
+        distribution_version={{ ansible_facts['distribution_version'] | default('unknown') }}
+        distribution_major_version={{ ansible_facts['distribution_major_version'] | default('unknown') }}
+  tags: [preflight]
 
 - name: Preflight | Require privilege escalation
   ansible.builtin.assert:
     that:
-      - (ansible_facts['user_id'] | int) == 0 or (ansible_become is defined and ansible_become | bool)
-  fail_msg: >
-    This role must run with elevated privileges. Re-run with become: true (or as root).
+      - (ansible_facts['user_id'] | default(99999) | int) == 0
+        or (ansible_become is defined and ansible_become | bool)
+    fail_msg: >-
+      This role must run with elevated privileges.
 
-- name: Preflight | Enforce 'safe-by-default' gate
+      Re-run with become enabled, for example:
+        - become: true
+        -K (if prompting for sudo password)
+
+      Detected user_id={{ ansible_facts['user_id'] | default('unknown') }}.
+  tags: [preflight]
+
+- name: Preflight | Enforce 'safe-by-default' execution mode gate
   ansible.builtin.assert:
     that:
-      - turtini_stig_apply | bool or turtini_stig_audit_only | bool
-      - not (turtini_stig_apply | bool and turtini_stig_audit_only | bool)
-  fail_msg: >
-    Invalid mode. Set exactly one:
-      - turtini_stig_apply=true (apply changes)
-      - turtini_stig_audit_only=true (report only)
+      - (turtini_stig_apply | bool) or (turtini_stig_audit_only | bool)
+      - not ((turtini_stig_apply | bool) and (turtini_stig_audit_only | bool))
+    fail_msg: >-
+      Invalid execution mode. Set EXACTLY one:
 
-- name: Preflight | Read SELinux status
-  ansible.builtin.command: getenforce
-  register: turtini_getenforce
-  changed_when: false
-  failed_when: false
+        turtini_stig_apply: true        (apply changes)
+        turtini_stig_audit_only: true   (report only)
 
-- name: Preflight | Read FIPS status (if present)
-  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
-  register: turtini_fips_enabled
-  changed_when: false
-  failed_when: false
+      Current values:
+        turtini_stig_apply={{ turtini_stig_apply | default('undefined') }}
+        turtini_stig_audit_only={{ turtini_stig_audit_only | default('undefined') }}
+  tags: [preflight]
 
-- name: Preflight | Read current crypto policy (if present)
-  ansible.builtin.command: update-crypto-policies --show
-  register: turtini_crypto_policy
-  changed_when: false
-  failed_when: false
+# --------------------------------------------------------------------
+# Control Selection Preflight (future-friendly)
+#
+# If enabled, these selectors let you run subsets of controls by:
+# - control IDs (e.g., V-#####)
+# - tags (arbitrary labels you assign per control)
+# - categories (your own grouping names, e.g. "auth", "logging", "crypto")
+#
+# Expected variables (defaults can be empty lists):
+#   turtini_stig_enable_control_selection: false
+#   turtini_stig_controls_include: []
+#   turtini_stig_controls_exclude: []
+#   turtini_stig_tags_include: []
+#   turtini_stig_tags_exclude: []
+#   turtini_stig_categories_include: []
+#   turtini_stig_categories_exclude: []
+# --------------------------------------------------------------------
 
-- name: Preflight | Capture kernel cmdline
-  ansible.builtin.command: cat /proc/cmdline
-  register: turtini_cmdline
-  changed_when: false
-  failed_when: false
+- name: Preflight | Normalize control selection lists
+  ansible.builtin.set_fact:
+    _turtini_controls_include: "{{ (turtini_stig_controls_include | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
+    _turtini_controls_exclude: "{{ (turtini_stig_controls_exclude | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
+    _turtini_tags_include: "{{ (turtini_stig_tags_include | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
+    _turtini_tags_exclude: "{{ (turtini_stig_tags_exclude | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
+    _turtini_categories_include: "{{ (turtini_stig_categories_include | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
+    _turtini_categories_exclude: "{{ (turtini_stig_categories_exclude | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
+  when: turtini_stig_enable_control_selection | bool
+  tags: [preflight]
 
-- name: Preflight | Summarize preflight facts
+- name: Preflight | Validate selector variable types (must be lists)
+  ansible.builtin.assert:
+    that:
+      - (turtini_stig_controls_include | default([])) is iterable
+      - (turtini_stig_controls_exclude | default([])) is iterable
+      - (turtini_stig_tags_include | default([])) is iterable
+      - (turtini_stig_tags_exclude | default([])) is iterable
+      - (turtini_stig_categories_include | default([])) is iterable
+      - (turtini_stig_categories_exclude | default([])) is iterable
+    fail_msg: >-
+      Control selection is enabled, but one or more selector variables are not list-like.
+
+      Expected lists (even if empty):
+        turtini_stig_controls_include: []
+        turtini_stig_controls_exclude: []
+        turtini_stig_tags_include: []
+        turtini_stig_tags_exclude: []
+        turtini_stig_categories_include: []
+        turtini_stig_categories_exclude: []
+  when: turtini_stig_enable_control_selection | bool
+  tags: [preflight]
+
+- name: Preflight | Ensure selection enabled has at least one selector
+  ansible.builtin.assert:
+    that:
+      - (_turtini_controls_include | length) > 0
+        or (_turtini_controls_exclude | length) > 0
+        or (_turtini_tags_include | length) > 0
+        or (_turtini_tags_exclude | length) > 0
+        or (_turtini_categories_include | length) > 0
+        or (_turtini_categories_exclude | length) > 0
+    fail_msg: >-
+      turtini_stig_enable_control_selection is true, but no selectors were provided.
+
+      Provide at least one of:
+        turtini_stig_controls_include / exclude
+        turtini_stig_tags_include / exclude
+        turtini_stig_categories_include / exclude
+  when: turtini_stig_enable_control_selection | bool
+  tags: [preflight]
+
+- name: Preflight | Prevent include/exclude overlap (controls)
+  ansible.builtin.assert:
+    that:
+      - (_turtini_controls_include | intersect(_turtini_controls_exclude) | length) == 0
+    fail_msg: >-
+      Invalid control selection: the same control IDs appear in BOTH include and exclude.
+
+      Overlap:
+        {{ _turtini_controls_include | intersect(_turtini_controls_exclude) }}
+  when: turtini_stig_enable_control_selection | bool
+  tags: [preflight]
+
+- name: Preflight | Prevent include/exclude overlap (tags)
+  ansible.builtin.assert:
+    that:
+      - (_turtini_tags_include | intersect(_turtini_tags_exclude) | length) == 0
+    fail_msg: >-
+      Invalid control selection: the same tags appear in BOTH include and exclude.
+
+      Overlap:
+        {{ _turtini_tags_include | intersect(_turtini_tags_exclude) }}
+  when: turtini_stig_enable_control_selection | bool
+  tags: [preflight]
+
+- name: Preflight | Prevent include/exclude overlap (categories)
+  ansible.builtin.assert:
+    that:
+      - (_turtini_categories_include | intersect(_turtini_categories_exclude) | length) == 0
+    fail_msg: >-
+      Invalid control selection: the same categories appear in BOTH include and exclude.
+
+      Overlap:
+        {{ _turtini_categories_include | intersect(_turtini_categories_exclude) }}
+  when: turtini_stig_enable_control_selection | bool
+  tags: [preflight]
+
+- name: Preflight | Summary (verbose)
   ansible.builtin.debug:
     msg:
+      - "Turtini STIG preflight passed."
+      - "Distribution: {{ _turtini_dist }} (major={{ _turtini_major }})"
       - "Mode: apply={{ turtini_stig_apply | bool }}, audit_only={{ turtini_stig_audit_only | bool }}"
-      - "Platform: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
-      - "SELinux: {{ (turtini_getenforce.stdout | default('unknown')) | trim }}"
-      - "FIPS enabled: {{ (turtini_fips_enabled.stdout | default('unknown')) | trim }}"
-      - "Crypto policy: {{ (turtini_crypto_policy.stdout | default('unknown')) | trim }}"
-      - "Kernel cmdline: {{ (turtini_cmdline.stdout | default('unknown')) | trim }}"
+      - "Allow rebuilds: {{ turtini_stig_allow_rebuilds | bool }}"
+      - "Allow reboot: {{ turtini_stig_allow_reboot | bool }}"
+      - "Allow service restart: {{ turtini_stig_allow_service_restart | bool }}"
+      - "Control selection enabled: {{ turtini_stig_enable_control_selection | bool }}"
+      - "controls_include={{ (_turtini_controls_include | default([])) | join(', ') }}"
+      - "controls_exclude={{ (_turtini_controls_exclude | default([])) | join(', ') }}"
+      - "tags_include={{ (_turtini_tags_include | default([])) | join(', ') }}"
+      - "tags_exclude={{ (_turtini_tags_exclude | default([])) | join(', ') }}"
+      - "categories_include={{ (_turtini_categories_include | default([])) | join(', ') }}"
+      - "categories_exclude={{ (_turtini_categories_exclude | default([])) | join(', ') }}"
   when: turtini_stig_preflight_verbose | bool
-
-- name: Preflight | Hard fail if incompatible rebuilds are detected (optional)
-  ansible.builtin.assert:
-    that:
-      - ansible_facts['distribution'] == 'RedHat' or turtini_stig_allow_rebuilds | bool
-  fail_msg: >
-  Unsupported platform detected.
-  This role supports RHEL 9 (and compatible rebuilds if enabled).
-  Detected: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
+  tags: [preflight]
