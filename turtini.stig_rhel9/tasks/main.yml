@@ -1,22 +1,7 @@
 ---
-# Main entrypoint for the role.
-# preflight -> selection context -> includes controls.
-
 - name: Include preflight safety checks
   ansible.builtin.include_tasks: preflight.yml
   tags: [preflight]
-
-# --------------------------------------------------------------------
-# Control selection context
-#
-# Goal: compute one boolean that each control can reuse:
-#   _turtini_run_control (per-control, computed inline in each include)
-#
-# Strategy:
-# - normalize lists (already done in preflight when enabled)
-# - provide safe defaults here too, so controls can reference these vars
-#   even when selection is disabled.
-# --------------------------------------------------------------------
 
 - name: Initialize control selection defaults (safe)
   ansible.builtin.set_fact:
@@ -28,35 +13,15 @@
     _turtini_categories_exclude: "{{ (turtini_stig_categories_exclude | default([])) | map('string') | map('trim') | reject('equalto','') | list }}"
   tags: [always]
 
-# --------------------------------------------------------------------
-# Controls
-#
-# Convention: each control is a file under tasks/controls/
-# Example naming:
-#   tasks/controls/V-12345.yml
-#   tasks/controls/V-12346.yml
-#
-# Each include passes three bits of metadata:
-#   _turtini_control_id
-#   _turtini_control_tags
-#   _turtini_control_categories
-#
-# Then we compute _turtini_run_control for that specific control
-# in the vars: block, so the control file can simply:
-#   when: _turtini_run_control
-# --------------------------------------------------------------------
-
-- name: Controls | Example placeholder (copy this block per control)
-  ansible.builtin.include_tasks: controls/example_control.yml
+- name: Controls | Password aging (login.defs)
+  ansible.builtin.include_tasks: controls/password_aging.yml
   vars:
-    _turtini_control_id: "V-00000"
-    _turtini_control_tags: ["example", "stig"]
-    _turtini_control_categories: ["example"]
+    _turtini_control_id: "password-aging"
+    _turtini_control_tags: ["password-aging", "auth", "stig"]
+    _turtini_control_categories: ["auth"]
     _turtini_run_control: >-
       {{
-        (
-          not (turtini_stig_enable_control_selection | bool)
-        )
+        (not (turtini_stig_enable_control_selection | bool))
         or
         (
           (
@@ -76,4 +41,20 @@
           (
             (_turtini_tags_exclude | length == 0)
             or
-            ((_turtini_control_tags | default([])) | i_
+            ((_turtini_control_tags | default([])) | intersect(_turtini_tags_exclude) | length == 0)
+          )
+          and
+          (
+            (_turtini_categories_include | length == 0)
+            or
+            ((_turtini_control_categories | default([])) | intersect(_turtini_categories_include) | length > 0)
+          )
+          and
+          (
+            (_turtini_categories_exclude | length == 0)
+            or
+            ((_turtini_control_categories | default([])) | intersect(_turtini_categories_exclude) | length == 0)
+          )
+        )
+      }}
+  tags: [controls, auth, password-aging]
