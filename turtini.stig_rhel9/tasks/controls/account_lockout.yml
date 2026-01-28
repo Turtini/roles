@@ -1,0 +1,148 @@
+---
+# Control: Account Lockout (pam_faillock)
+# Configured via /etc/security/faillock.conf on RHEL 9
+
+- name: "Control Metadata | account-lockout"
+  ansible.builtin.set_fact:
+    turtini_control_meta:
+      id: "account-lockout"
+      title: "Account lockout is enforced using pam_faillock"
+      stig:
+        rules: []   # TODO: map to exact RHEL 9 STIG Rule / Vuln IDs
+      severity: "medium"
+      cci:
+        - "TBD"
+      nist:
+        - "AC-7"
+      rationale: >-
+        Limiting failed logon attempts reduces the risk of brute-force password
+        guessing and supports baseline account protection requirements.
+      check: >-
+        Review /etc/security/faillock.conf and confirm deny, fail_interval,
+        unlock_time, and even_deny_root meet the site policy.
+      fix: >-
+        Configure /etc/security/faillock.conf with required values and ensure
+        pam_faillock is enabled via authselect.
+      implementation: >-
+        This control audits current faillock settings and, when apply mode is
+        enabled, enforces deny, fail_interval, unlock_time, and optionally
+        even_deny_root.
+      notes:
+        - "This control does not rewrite PAM stacks; it relies on authselect defaults."
+        - "Changes may affect user experience; test in non-production environments."
+
+- name: "Account Lockout | Metadata (verbose)"
+  ansible.builtin.debug:
+    var: turtini_control_meta
+  when: turtini_stig_preflight_verbose | bool
+  tags: [controls, auth, account-lockout, meta]
+
+- name: "Account Lockout | Verify faillock.conf exists"
+  ansible.builtin.stat:
+    path: /etc/security/faillock.conf
+  register: turtini_faillock_conf
+  tags: [controls, auth, account-lockout]
+
+- name: "Account Lockout | Fail if faillock.conf is missing"
+  ansible.builtin.assert:
+    that:
+      - turtini_faillock_conf.stat.exists
+    fail_msg: >-
+      /etc/security/faillock.conf was not found.
+      This role expects RHEL 9-style pam_faillock configuration.
+  tags: [controls, auth, account-lockout]
+
+- name: "Account Lockout | Validate inputs"
+  ansible.builtin.assert:
+    that:
+      - turtini_stig_faillock_deny is number
+      - turtini_stig_faillock_fail_interval is number
+      - turtini_stig_faillock_unlock_time is number
+      - (turtini_stig_faillock_deny | int) >= 1
+      - (turtini_stig_faillock_fail_interval | int) >= 1
+      - (turtini_stig_faillock_unlock_time | int) >= 0
+    fail_msg: >-
+      Invalid account lockout inputs.
+      Got:
+        deny={{ turtini_stig_faillock_deny }},
+        fail_interval={{ turtini_stig_faillock_fail_interval }},
+        unlock_time={{ turtini_stig_faillock_unlock_time }}.
+  tags: [controls, auth, account-lockout]
+
+- name: "Account Lockout | Audit current faillock.conf settings"
+  ansible.builtin.shell: |
+    set -o pipefail
+    egrep -n '^\s*(deny|fail_interval|unlock_time|even_deny_root)\b' /etc/security/faillock.conf || true
+  args:
+    executable: /bin/bash
+  register: turtini_faillock_current
+  changed_when: false
+  tags: [controls, auth, account-lockout, audit]
+
+- name: "Account Lockout | Report current settings"
+  ansible.builtin.debug:
+    msg:
+      - "Current /etc/security/faillock.conf settings:"
+      - "{{ (turtini_faillock_current.stdout | default('')) | trim }}"
+      - "Target:"
+      - "  deny={{ turtini_stig_faillock_deny | int }}"
+      - "  fail_interval={{ turtini_stig_faillock_fail_interval | int }}"
+      - "  unlock_time={{ turtini_stig_faillock_unlock_time | int }}"
+      - "  even_deny_root={{ turtini_stig_faillock_even_deny_root | bool }}"
+  when: turtini_stig_audit_only | bool
+  tags: [controls, auth, account-lockout, audit]
+
+- name: "Account Lockout | Ensure deny is set"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^\s*deny\b.*$'
+    line: "deny = {{ turtini_stig_faillock_deny | int }}"
+    create: false
+  when: turtini_stig_apply | bool
+  tags: [controls, auth, account-lockout]
+
+- name: "Account Lockout | Ensure fail_interval is set"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^\s*fail_interval\b.*$'
+    line: "fail_interval = {{ turtini_stig_faillock_fail_interval | int }}"
+    create: false
+  when: turtini_stig_apply | bool
+  tags: [controls, auth, account-lockout]
+
+- name: "Account Lockout | Ensure unlock_time is set"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^\s*unlock_time\b.*$'
+    line: "unlock_time = {{ turtini_stig_faillock_unlock_time | int }}"
+    create: false
+  when: turtini_stig_apply | bool
+  tags: [controls, auth, account-lockout]
+
+- name: "Account Lockout | Ensure even_deny_root is present or absent"
+  ansible.builtin.lineinfile:
+    path: /etc/security/faillock.conf
+    regexp: '^\s*even_deny_root\b.*$'
+    line: "even_deny_root"
+    state: "{{ 'present' if (turtini_stig_faillock_even_deny_root | bool) else 'absent' }}"
+    create: false
+  when: turtini_stig_apply | bool
+  tags: [controls, auth, account-lockout]
+
+- name: "Account Lockout | Audit final faillock.conf settings"
+  ansible.builtin.shell: |
+    set -o pipefail
+    egrep -n '^\s*(deny|fail_interval|unlock_time|even_deny_root)\b' /etc/security/faillock.conf || true
+  args:
+    executable: /bin/bash
+  register: turtini_faillock_final
+  changed_when: false
+  tags: [controls, auth, account-lockout, audit]
+
+- name: "Account Lockout | Report final settings (verbose)"
+  ansible.builtin.debug:
+    msg:
+      - "Final /etc/security/faillock.conf settings:"
+      - "{{ (turtini_faillock_final.stdout | default('')) | trim }}"
+  when: turtini_stig_preflight_verbose | bool
+  tags: [controls, auth, account-lockout, audit]
