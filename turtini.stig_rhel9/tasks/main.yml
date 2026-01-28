@@ -118,12 +118,13 @@
           )
         )
       }}
+  when: _turtini_run_control | bool
   tags:
     - controls
     - auth
     - password-aging
 
-  - name: Controls | Account lockout (pam_faillock)
+- name: Controls | Account lockout (pam_faillock)
   ansible.builtin.include_tasks: controls/account_lockout.yml
   vars:
     _turtini_control_id: "account-lockout"
@@ -187,4 +188,3 @@
     - controls
     - auth
     - account-lockout
-
