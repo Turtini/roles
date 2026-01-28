@@ -38,3 +38,10 @@ turtini_stig_tags_include: []
 turtini_stig_tags_exclude: []
 turtini_stig_categories_include: []
 turtini_stig_categories_exclude: []
+
+# Password aging targets (login.defs)
+# Defaults chosen to be common compliance baselines; adjust per customer policy.
+turtini_stig_pass_max_days: 60
+turtini_stig_pass_min_days: 1
+turtini_stig_pass_warn_age: 7
+
