@@ -31,7 +31,10 @@ turtini_stig_allow_service_restart: true
 # When true, we’ll allow selecting subsets of controls by category/tag.
 turtini_stig_enable_control_selection: false
 
-# Placeholder lists for future expansion (kept empty by default)
-# Example future use: only apply controls listed here.
-turtini_stig_only_controls: []
-turtini_stig_skip_controls: []
+# Control selection (optional)
+turtini_stig_controls_include: []
+turtini_stig_controls_exclude: []
+turtini_stig_tags_include: []
+turtini_stig_tags_exclude: []
+turtini_stig_categories_include: []
+turtini_stig_categories_exclude: []
