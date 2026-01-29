@@ -439,3 +439,15 @@
   when: _turtini_run_control | bool
   tags: [controls, auth, sudo-hardening]
   
+- name: Controls | FIPS mode verification | Metadata
+  ansible.builtin.include_tasks: controls/fips_mode_meta.yml
+  tags: [controls, fips, meta]
+
+- name: Controls | FIPS mode verification
+  ansible.builtin.include_tasks: controls/fips_mode.yml
+  vars:
+    _turtini_control_id: "fips-mode-verification"
+    _turtini_control_tags: [fips, crypto]
+    _turtini_control_categories: [crypto]
+    _turtini_run_control: true
+  tags: [controls, fips, audit]
