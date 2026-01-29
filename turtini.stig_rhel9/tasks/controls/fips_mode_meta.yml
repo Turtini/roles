@@ -1,0 +1,26 @@
+---
+- name: "Control Metadata | fips-mode-verification"
+  ansible.builtin.set_fact:
+    turtini_control_meta:
+      id: "fips-mode-verification"
+      title: "System is operating in FIPS-approved mode"
+      stig:
+        rules: []   # TODO: RHEL 9 FIPS STIG mappings
+      severity: "high"
+      cci:
+        - "TBD"
+      nist:
+        - "SC-13"
+        - "IA-7"
+      rationale: >-
+        FIPS mode ensures cryptographic operations comply with
+        federally approved standards.
+      check: >-
+        Verify kernel FIPS flag, system crypto policy, and OpenSSL behavior.
+      fix: >-
+        Enable FIPS mode during system provisioning and reboot.
+      implementation: >-
+        This control audits FIPS status only and does not enable FIPS.
+      notes:
+        - "Enabling FIPS requires reboot and must be done at build time."
+        - "This control is audit-only by design."
