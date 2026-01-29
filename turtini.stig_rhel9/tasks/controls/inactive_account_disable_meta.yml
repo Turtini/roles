@@ -1,0 +1,36 @@
+---
+# Control: Inactive account disable (useradd defaults)
+# Configured via /etc/default/useradd (INACTIVE)
+
+- name: "Control Metadata | inactive-account-disable"
+  ansible.builtin.set_fact:
+    turtini_control_meta:
+      id: "inactive-account-disable"
+      title: "Inactive accounts are disabled after a defined inactivity period"
+      stig:
+        rules: []   # TODO: map to exact RHEL 9 STIG Rule / Vuln IDs
+      severity: "medium"
+      cci:
+        - "TBD"
+      nist:
+        - "AC-2"
+      rationale: >-
+        Disabling inactive accounts reduces the risk of unauthorized access from
+        unused or abandoned accounts.
+      check: >-
+        Review /etc/default/useradd and confirm INACTIVE is set per site policy.
+      fix: >-
+        Set INACTIVE in /etc/default/useradd to the number of days after password
+        expiration until the account is disabled.
+      implementation: >-
+        This control audits current INACTIVE value and, when apply mode is enabled,
+        enforces INACTIVE in /etc/default/useradd.
+      notes:
+        - "This affects defaults for NEW accounts. Existing accounts may require chage -I remediation."
+  tags: [controls, auth, inactive-account-disable, meta]
+
+- name: "Inactive Account Disable | Metadata (verbose)"
+  ansible.builtin.debug:
+    var: turtini_control_meta
+  when: turtini_stig_preflight_verbose | bool
+  tags: [controls, auth, inactive-account-disable, meta]
