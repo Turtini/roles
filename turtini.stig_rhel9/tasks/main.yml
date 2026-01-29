@@ -205,6 +205,14 @@
     - auth
     - account-lockout
 
+- name: Controls | Inactive account disable | Metadata
+  ansible.builtin.include_tasks: controls/inactive_account_disable_meta.yml
+  tags:
+    - controls
+    - auth
+    - inactive-account-disable
+    - meta
+
 - name: Controls | Inactive account disable (/etc/default/useradd)
   ansible.builtin.include_tasks: controls/inactive_account_disable.yml
   vars:
@@ -269,14 +277,6 @@
     - controls
     - auth
     - inactive-account-disable
-
-- name: Controls | Inactive account disable | Metadata
-  ansible.builtin.include_tasks: controls/inactive_account_disable_meta.yml
-  tags:
-    - controls
-    - auth
-    - inactive-account-disable
-    - meta
 
 - name: Controls | Password complexity | Metadata
   ansible.builtin.include_tasks: controls/password_complexity_meta.yml
