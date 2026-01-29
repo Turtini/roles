@@ -1,0 +1,38 @@
+---
+# Control Metadata: Removable media mount restrictions
+
+- name: "Control Metadata | removable-media-mount-restrictions"
+  ansible.builtin.set_fact:
+    turtini_control_meta:
+      id: "removable-media-mount-restrictions"
+      title: "Removable media mounts use restrictive options (nodev,nosuid,noexec)"
+      stig:
+        rules: []   # TODO: map to RHEL 9 STIG Rule / Vuln IDs
+      severity: "medium"
+      cci:
+        - "TBD"
+      nist:
+        - "CM-7"
+        - "MP-7"
+      rationale: >-
+        Restricting execution, suid, and device files on removable media
+        reduces the risk of malicious code execution and privilege escalation.
+      check: >-
+        Identify removable media mounts (vfat/exfat/ntfs/iso9660/udf) and verify
+        they include nodev, nosuid, and noexec.
+      fix: >-
+        Configure removable media mounts to include nodev, nosuid, and noexec.
+        Where automount tooling is used, enforce mount defaults.
+      implementation: >-
+        This control audits current mounts for removable-media filesystem types.
+        When apply mode is enabled, it enforces restrictive defaults for udisks2
+        if present, and reports any mounts still missing required options.
+      notes:
+        - "On hardened server builds, udisks2 may be absent; this control remains audit-valid."
+        - "OpenShift nodes typically should not rely on removable media mounts."
+
+- name: "Removable Media Mount Restrictions | Metadata (verbose)"
+  ansible.builtin.debug:
+    var: turtini_control_meta
+  when: turtini_stig_preflight_verbose | bool
+  tags: [controls, storage, removable-media, meta]
