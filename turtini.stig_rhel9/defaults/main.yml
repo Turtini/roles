@@ -50,3 +50,8 @@ turtini_stig_faillock_deny: 3
 turtini_stig_faillock_fail_interval: 900   # seconds
 turtini_stig_faillock_unlock_time: 0       # 0 = requires admin unlock; set to 900 for 15 min
 turtini_stig_faillock_even_deny_root: true
+
+# Inactive account disable targets (/etc/default/useradd)
+# INACTIVE = number of days after password expires until the account is disabled
+# -1 means never disable; 35 is a common compliance baseline.
+turtini_stig_useradd_inactive_days: 35
