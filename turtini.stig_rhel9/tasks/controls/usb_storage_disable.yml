@@ -1,0 +1,63 @@
+---
+# USB Storage Disable (usb-storage kernel module)
+
+- name: "USB Storage Disable | Check if usb-storage module is loaded"
+  ansible.builtin.shell: |
+    lsmod | grep -E '^usb_storage' || true
+  register: turtini_usb_storage_lsmod
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, hardware, usb, audit]
+
+- name: "USB Storage Disable | Report module load status"
+  ansible.builtin.debug:
+    msg:
+      - "usb-storage module loaded:"
+      - "{{ (turtini_usb_storage_lsmod.stdout | default('not loaded')) | trim }}"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_audit_only | bool
+  tags: [controls, hardware, usb, audit]
+
+- name: "USB Storage Disable | Ensure usb-storage is disabled via modprobe"
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/turtini-usb-storage.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      # Disable USB mass storage devices
+      install usb-storage /bin/true
+      blacklist usb-storage
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+  tags: [controls, hardware, usb]
+
+- name: "USB Storage Disable | Remove loaded usb-storage module (if allowed)"
+  ansible.builtin.command: modprobe -r usb-storage
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+    - turtini_stig_allow_service_restart | bool
+    - turtini_usb_storage_lsmod.stdout | length > 0
+  changed_when: true
+  tags: [controls, hardware, usb]
+
+- name: "USB Storage Disable | Verify module is not loaded (final)"
+  ansible.builtin.shell: |
+    lsmod | grep -E '^usb_storage' || true
+  register: turtini_usb_storage_final
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, hardware, usb, audit]
+
+- name: "USB Storage Disable | Report final status (verbose)"
+  ansible.builtin.debug:
+    msg:
+      - "Final usb-storage module status:"
+      - "{{ (turtini_usb_storage_final.stdout | default('not loaded')) | trim }}"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_preflight_verbose | bool
+  tags: [controls, hardware, usb, audit]
