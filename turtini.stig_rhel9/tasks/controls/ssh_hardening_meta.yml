@@ -1,0 +1,41 @@
+---
+# Control: SSH hardening (sshd configuration)
+# Enforced via drop-in: /etc/ssh/sshd_config.d/90-turtini-stig-hardening.conf
+# Audits effective config via `sshd -T` where possible.
+
+- name: "Control Metadata | ssh-hardening"
+  ansible.builtin.set_fact:
+    turtini_control_meta:
+      id: "ssh-hardening"
+      title: "SSH daemon configuration is hardened to reduce remote access risk"
+      stig:
+        rules: []   # TODO: map to exact RHEL 9 STIG Rule / Vuln IDs
+      severity: "high"
+      cci:
+        - "TBD"
+      nist:
+        - "AC-17"
+        - "IA-2"
+        - "SC-8"
+      rationale: >-
+        SSH is a primary remote administration interface. Hardening sshd reduces the
+        likelihood of credential-based compromise and limits session abuse.
+      check: >-
+        Review effective sshd configuration (e.g., `sshd -T`) and confirm settings
+        align with site policy (root login disabled, strong auth, tight timeouts).
+      fix: >-
+        Apply a managed sshd_config.d drop-in with required directives and validate
+        configuration before reloading sshd.
+      implementation: >-
+        This control audits current effective sshd settings and, when apply mode is enabled,
+        writes a hardened drop-in config. It validates with `sshd -t` before reloading sshd.
+      notes:
+        - "Changes to SSH can lock out administrators if misconfigured."
+        - "Reload of sshd is gated by turtini_stig_allow_service_restart."
+        - "Defaults may need tuning for environments using Kerberos/GSSAPI or password auth."
+
+- name: "SSH Hardening | Metadata (verbose)"
+  ansible.builtin.debug:
+    var: turtini_control_meta
+  when: turtini_stig_preflight_verbose | bool
+  tags: [controls, auth, ssh-hardening, meta]
