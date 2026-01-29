@@ -254,6 +254,14 @@
     - auth
     - inactive-account-disable
 
+- name: Controls | Inactive account disable | Metadata
+  ansible.builtin.include_tasks: controls/inactive_account_disable_meta.yml
+  tags:
+    - controls
+    - auth
+    - inactive-account-disable
+    - meta
+
 - name: Controls | Password complexity (pwquality)
   ansible.builtin.include_tasks: controls/password_complexity.yml
   vars:
