@@ -59,6 +59,14 @@
 # Controls
 # ==========================================================
 
+- name: Controls | Password aging | Metadata
+  ansible.builtin.include_tasks: controls/password_aging_meta.yml
+  tags:
+    - controls
+    - auth
+    - password-aging
+    - meta
+
 - name: Controls | Password aging (login.defs)
   ansible.builtin.include_tasks: controls/password_aging.yml
   vars:
