@@ -1,0 +1,107 @@
+---
+# Removable media mount restrictions (nodev,nosuid,noexec)
+
+- name: "Removable Media | Check for udisks2 mount options config path"
+  ansible.builtin.stat:
+    path: /etc/udisks2
+  register: turtini_udisks2_dir
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, storage, removable-media, audit]
+
+- name: "Removable Media | Audit current mounts for removable-media filesystem types"
+  ansible.builtin.shell: |
+    set -o pipefail
+    findmnt -rn -o TARGET,FSTYPE,OPTIONS | egrep -i '\s({{ turtini_stig_removable_fs_types | join("|") }})\s' || true
+  args:
+    executable: /bin/bash
+  register: turtini_removable_mounts_current
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, storage, removable-media, audit]
+
+- name: "Removable Media | Report current removable-media mounts (audit-only)"
+  ansible.builtin.debug:
+    msg:
+      - "Detected removable-media mounts (TARGET FSTYPE OPTIONS):"
+      - "{{ (turtini_removable_mounts_current.stdout | default('none detected')) | trim }}"
+      - "Required options: {{ turtini_stig_removable_mount_required_options | join(',') }}"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_audit_only | bool
+  tags: [controls, storage, removable-media, audit]
+
+- name: "Removable Media | Compute mounts missing required options"
+  ansible.builtin.set_fact:
+    turtini_removable_mounts_missing_required: >-
+      {{
+        (turtini_removable_mounts_current.stdout_lines | default([]))
+        | map('regex_replace', '\s+', ' ')
+        | list
+        | select('string')
+        | list
+        | map('trim')
+        | reject('equalto','')
+        | list
+      }}
+  when: _turtini_run_control | bool
+  tags: [controls, storage, removable-media, audit]
+
+- name: "Removable Media | Report mounts (if any) that may need review"
+  ansible.builtin.debug:
+    msg:
+      - "NOTE: Review these mounts to confirm they include nodev,nosuid,noexec:"
+      - "{{ turtini_removable_mounts_missing_required | default([]) }}"
+      - "This role can enforce default automount behavior via udisks2 when present; explicit fstab entries are environment-specific."
+  when:
+    - _turtini_run_control | bool
+    - (turtini_removable_mounts_current.stdout | default('') | trim | length) > 0
+  tags: [controls, storage, removable-media, audit]
+
+# Enforce udisks2 defaults (only if present) — safe and reversible
+- name: "Removable Media | Ensure udisks2 mount options defaults are restrictive (if udisks2 exists)"
+  ansible.builtin.copy:
+    dest: /etc/udisks2/mount_options.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [defaults]
+      # Enforce restrictive options for removable media
+      # Applies to udisks2-managed mounts (commonly desktop / interactive environments)
+      # Does not affect explicit /etc/fstab entries.
+      #
+      # NOTE: Keep this conservative; OpenShift nodes typically do not use udisks2.
+      #
+      vfat_defaults=nodev,nosuid,noexec
+      exfat_defaults=nodev,nosuid,noexec
+      ntfs_defaults=nodev,nosuid,noexec
+      iso9660_defaults=nodev,nosuid,noexec
+      udf_defaults=nodev,nosuid,noexec
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+    - turtini_udisks2_dir.stat.exists | bool
+  tags: [controls, storage, removable-media]
+
+- name: "Removable Media | Audit final mounts for removable-media filesystem types"
+  ansible.builtin.shell: |
+    set -o pipefail
+    findmnt -rn -o TARGET,FSTYPE,OPTIONS | egrep -i '\s({{ turtini_stig_removable_fs_types | join("|") }})\s' || true
+  args:
+    executable: /bin/bash
+  register: turtini_removable_mounts_final
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, storage, removable-media, audit]
+
+- name: "Removable Media | Report final removable-media mounts (verbose)"
+  ansible.builtin.debug:
+    msg:
+      - "Final removable-media mounts (TARGET FSTYPE OPTIONS):"
+      - "{{ (turtini_removable_mounts_final.stdout | default('none detected')) | trim }}"
+      - "Required options: {{ turtini_stig_removable_mount_required_options | join(',') }}"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_preflight_verbose | bool
+  tags: [controls, storage, removable-media, audit]
