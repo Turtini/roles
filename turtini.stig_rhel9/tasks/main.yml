@@ -493,3 +493,43 @@
     - hardware
     - usb
 
+- name: Controls | Removable media mount restrictions | Metadata
+  ansible.builtin.include_tasks: controls/removable_media_mount_restrictions_meta.yml
+  tags:
+    - controls
+    - storage
+    - removable-media
+    - meta
+
+- name: Controls | Removable media mount restrictions
+  ansible.builtin.include_tasks: controls/removable_media_mount_restrictions.yml
+  vars:
+    _turtini_control_id: "removable-media-mount-restrictions"
+    _turtini_control_tags:
+      - storage
+      - removable-media
+    _turtini_control_categories:
+      - storage
+    _turtini_run_control: >-
+      {{
+        (not (turtini_stig_enable_control_selection | bool))
+        or
+        (
+          (
+            (_turtini_controls_include | length == 0)
+            or
+            (_turtini_control_id in _turtini_controls_include)
+          )
+          and
+          (
+            (_turtini_controls_exclude | length == 0)
+            or
+            (_turtini_control_id not in _turtini_controls_exclude)
+          )
+        )
+      }}
+  when: _turtini_run_control | bool
+  tags:
+    - controls
+    - storage
+    - removable-media
