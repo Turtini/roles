@@ -132,6 +132,14 @@
     - auth
     - password-aging
 
+- name: Controls | Account lockout | Metadata
+  ansible.builtin.include_tasks: controls/account_lockout_meta.yml
+  tags:
+    - controls
+    - auth
+    - account-lockout
+    - meta
+
 - name: Controls | Account lockout (pam_faillock)
   ansible.builtin.include_tasks: controls/account_lockout.yml
   vars:
