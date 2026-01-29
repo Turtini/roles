@@ -424,3 +424,18 @@
     - auth
     - ssh-hardening
 
+- name: Controls | Sudo hardening | Metadata
+  ansible.builtin.include_tasks: controls/sudo_hardening_meta.yml
+  tags: [controls, auth, sudo-hardening, meta]
+
+- name: Controls | Sudo hardening
+  ansible.builtin.include_tasks: controls/sudo_hardening.yml
+  vars:
+    _turtini_control_id: "sudo-hardening"
+    _turtini_control_tags: [auth, sudo-hardening]
+    _turtini_control_categories: [auth]
+    _turtini_run_control: "{{ not turtini_stig_enable_control_selection | bool
+      or _turtini_control_id in _turtini_controls_include }}"
+  when: _turtini_run_control | bool
+  tags: [controls, auth, sudo-hardening]
+  
