@@ -1,0 +1,37 @@
+---
+# Control Metadata: USB Storage Disable
+
+- name: "Control Metadata | usb-storage-disable"
+  ansible.builtin.set_fact:
+    turtini_control_meta:
+      id: "usb-storage-disable"
+      title: "USB mass storage devices are disabled"
+      stig:
+        rules: []   # TODO: map to RHEL 9 STIG Rule / Vuln IDs
+      severity: "medium"
+      cci:
+        - "TBD"
+      nist:
+        - "CM-7"
+        - "MP-7"
+      rationale: >-
+        Disabling USB mass storage reduces the risk of unauthorized data
+        exfiltration and malware introduction via removable media.
+      check: >-
+        Verify the usb-storage kernel module is disabled via modprobe
+        configuration and not currently loaded.
+      fix: >-
+        Configure the system to prevent loading of the usb-storage kernel
+        module.
+      implementation: >-
+        This control audits whether the usb-storage module is disabled and,
+        when apply mode is enabled, enforces a deny rule via modprobe.
+      notes:
+        - "Does NOT affect USB keyboards, mice, or CAC/PIV smartcard readers."
+        - "Commonly required in CAC/PIV + SSH key environments."
+
+- name: "USB Storage Disable | Metadata (verbose)"
+  ansible.builtin.debug:
+    var: turtini_control_meta
+  when: turtini_stig_preflight_verbose | bool
+  tags: [controls, hardware, usb, meta]
