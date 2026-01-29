@@ -1,0 +1,33 @@
+---
+- name: "FIPS | Check kernel FIPS flag"
+  ansible.builtin.command: cat /proc/sys/crypto/fips_enabled
+  register: turtini_fips_kernel
+  changed_when: false
+  failed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, fips, audit]
+
+- name: "FIPS | Check system crypto policy"
+  ansible.builtin.command: update-crypto-policies --show
+  register: turtini_fips_policy
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, fips, audit]
+
+- name: "FIPS | Check OpenSSL FIPS provider"
+  ansible.builtin.command: openssl list -providers
+  register: turtini_fips_openssl
+  changed_when: false
+  failed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, fips, audit]
+
+- name: "FIPS | Report status"
+  ansible.builtin.debug:
+    msg:
+      - "Kernel FIPS enabled: {{ turtini_fips_kernel.stdout | default('unknown') }}"
+      - "Crypto policy: {{ turtini_fips_policy.stdout | default('unknown') }}"
+      - "OpenSSL providers:"
+      - "{{ turtini_fips_openssl.stdout | default('') }}"
+  when: turtini_stig_preflight_verbose | bool
+  tags: [controls, fips, audit]
