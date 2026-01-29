@@ -64,3 +64,18 @@ turtini_stig_pwquality_ucredit: -1
 turtini_stig_pwquality_lcredit: -1
 turtini_stig_pwquality_ocredit: -1
 
+# SSH hardening targets (sshd drop-in via /etc/ssh/sshd_config.d)
+# Safe-by-default: in apply mode we will WRITE the drop-in, but only RELOAD sshd if service restarts are allowed.
+turtini_stig_ssh_dropin_path: "/etc/ssh/sshd_config.d/90-turtini-stig-hardening.conf"
+
+# Common STIG-ish baselines (adjust per customer policy)
+turtini_stig_ssh_permit_root_login: "no"
+turtini_stig_ssh_permit_empty_passwords: "no"
+turtini_stig_ssh_password_authentication: "no"     # NOTE: change to "yes" if agency uses passwords
+turtini_stig_ssh_kbd_interactive_auth: "no"
+turtini_stig_ssh_gssapi_authentication: "no"       # NOTE: set "yes" if agency uses Kerberos/GSSAPI
+turtini_stig_ssh_x11_forwarding: "no"
+turtini_stig_ssh_max_auth_tries: 3
+turtini_stig_ssh_login_grace_time: 60              # seconds
+turtini_stig_ssh_client_alive_interval: 900        # seconds
+turtini_stig_ssh_client_alive_count_max: 0         # 0 = disconnect after interval
