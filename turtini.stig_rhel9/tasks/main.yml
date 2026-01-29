@@ -254,3 +254,69 @@
     - auth
     - inactive-account-disable
 
+- name: Controls | Password complexity (pwquality)
+  ansible.builtin.include_tasks: controls/password_complexity.yml
+  vars:
+    _turtini_control_id: "password-complexity"
+    _turtini_control_tags:
+      - auth
+      - password-complexity
+    _turtini_control_categories:
+      - auth
+    _turtini_run_control: >-
+      {{
+        (not (turtini_stig_enable_control_selection | bool))
+        or
+        (
+          (
+            (_turtini_controls_include | length == 0)
+            or
+            (_turtini_control_id in _turtini_controls_include)
+          )
+          and
+          (
+            (_turtini_controls_exclude | length == 0)
+            or
+            (_turtini_control_id not in _turtini_controls_exclude)
+          )
+          and
+          (
+            (_turtini_tags_include | length == 0)
+            or
+            ((_turtini_control_tags | default([]))
+              | intersect(_turtini_tags_include)
+              | length > 0)
+          )
+          and
+          (
+            (_turtini_tags_exclude | length == 0)
+            or
+            ((_turtini_control_tags | default([]))
+              | intersect(_turtini_tags_exclude)
+              | length == 0)
+          )
+          and
+          (
+            (_turtini_categories_include | length == 0)
+            or
+            ((_turtini_control_categories | default([]))
+              | intersect(_turtini_categories_include)
+              | length > 0)
+          )
+          and
+          (
+            (_turtini_categories_exclude | length == 0)
+            or
+            ((_turtini_control_categories | default([]))
+              | intersect(_turtini_categories_exclude)
+              | length == 0)
+          )
+        )
+      }}
+  when: _turtini_run_control | bool
+  tags:
+    - controls
+    - auth
+    - password-complexity
+
+
