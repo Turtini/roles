@@ -1,0 +1,170 @@
+---
+# SSH hardening (sshd)
+# - Audit effective config with `sshd -T` (best-effort)
+# - Enforce using a managed drop-in file under /etc/ssh/sshd_config.d
+# - Validate with `sshd -t` before reload
+# - Reload only if turtini_stig_allow_service_restart is true
+
+- name: "SSH Hardening | Verify sshd binary exists"
+  ansible.builtin.stat:
+    path: /usr/sbin/sshd
+  register: turtini_sshd_bin
+  when: _turtini_run_control | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Fail if sshd is missing"
+  ansible.builtin.assert:
+    that:
+      - turtini_sshd_bin.stat.exists
+    fail_msg: >-
+      /usr/sbin/sshd was not found. This control expects OpenSSH server to be installed.
+  when: _turtini_run_control | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Audit effective sshd configuration (best-effort)"
+  ansible.builtin.shell: |
+    set -o pipefail
+    /usr/sbin/sshd -T 2>/dev/null | egrep -i '^(permitrootlogin|permitemptypasswords|passwordauthentication|kbdinteractiveauthentication|gssapiauthentication|x11forwarding|maxauthtries|logingracetime|clientaliveinterval|clientalivecountmax)\b' || true
+  args:
+    executable: /bin/bash
+  register: turtini_sshd_effective_current
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, auth, ssh-hardening, audit]
+
+- name: "SSH Hardening | Report current effective settings"
+  ansible.builtin.debug:
+    msg:
+      - "Current effective sshd settings (sshd -T):"
+      - "{{ (turtini_sshd_effective_current.stdout | default('')) | trim }}"
+      - "Targets:"
+      - "  PermitRootLogin={{ turtini_stig_ssh_permit_root_login }}"
+      - "  PermitEmptyPasswords={{ turtini_stig_ssh_permit_empty_passwords }}"
+      - "  PasswordAuthentication={{ turtini_stig_ssh_password_authentication }}"
+      - "  KbdInteractiveAuthentication={{ turtini_stig_ssh_kbd_interactive_auth }}"
+      - "  GSSAPIAuthentication={{ turtini_stig_ssh_gssapi_authentication }}"
+      - "  X11Forwarding={{ turtini_stig_ssh_x11_forwarding }}"
+      - "  MaxAuthTries={{ turtini_stig_ssh_max_auth_tries }}"
+      - "  LoginGraceTime={{ turtini_stig_ssh_login_grace_time }}"
+      - "  ClientAliveInterval={{ turtini_stig_ssh_client_alive_interval }}"
+      - "  ClientAliveCountMax={{ turtini_stig_ssh_client_alive_count_max }}"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_audit_only | bool
+  tags: [controls, auth, ssh-hardening, audit]
+
+- name: "SSH Hardening | Validate inputs"
+  ansible.builtin.assert:
+    that:
+      - turtini_stig_ssh_max_auth_tries is number
+      - (turtini_stig_ssh_max_auth_tries | int) > 0
+      - turtini_stig_ssh_login_grace_time is number
+      - (turtini_stig_ssh_login_grace_time | int) > 0
+      - turtini_stig_ssh_client_alive_interval is number
+      - (turtini_stig_ssh_client_alive_interval | int) >= 0
+      - turtini_stig_ssh_client_alive_count_max is number
+      - (turtini_stig_ssh_client_alive_count_max | int) >= 0
+    fail_msg: >-
+      Invalid SSH hardening inputs. Check numeric defaults for MaxAuthTries/LoginGraceTime/ClientAlive*.
+  when: _turtini_run_control | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Build drop-in content"
+  ansible.builtin.set_fact:
+    _turtini_sshd_dropin_content: |
+      # Managed by Turtini (turtini.stig_rhel9)
+      # Do not edit manually. Update via Ansible role defaults/vars.
+      #
+      # This file is applied as an sshd drop-in on RHEL 9:
+      # {{ turtini_stig_ssh_dropin_path }}
+
+      PermitRootLogin {{ turtini_stig_ssh_permit_root_login }}
+      PermitEmptyPasswords {{ turtini_stig_ssh_permit_empty_passwords }}
+      PasswordAuthentication {{ turtini_stig_ssh_password_authentication }}
+      KbdInteractiveAuthentication {{ turtini_stig_ssh_kbd_interactive_auth }}
+      GSSAPIAuthentication {{ turtini_stig_ssh_gssapi_authentication }}
+      X11Forwarding {{ turtini_stig_ssh_x11_forwarding }}
+
+      MaxAuthTries {{ turtini_stig_ssh_max_auth_tries | int }}
+      LoginGraceTime {{ turtini_stig_ssh_login_grace_time | int }}
+      ClientAliveInterval {{ turtini_stig_ssh_client_alive_interval | int }}
+      ClientAliveCountMax {{ turtini_stig_ssh_client_alive_count_max | int }}
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Ensure sshd_config.d exists"
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Write managed sshd drop-in"
+  ansible.builtin.copy:
+    dest: "{{ turtini_stig_ssh_dropin_path }}"
+    content: "{{ _turtini_sshd_dropin_content }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Validate sshd config (sshd -t)"
+  ansible.builtin.command: /usr/sbin/sshd -t
+  register: turtini_sshd_validate
+  changed_when: false
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Reload sshd (gated)"
+  ansible.builtin.service:
+    name: sshd
+    state: reloaded
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+    - turtini_stig_allow_service_restart | bool
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Warn if sshd was not reloaded"
+  ansible.builtin.debug:
+    msg: >-
+      SSH hardening drop-in was written and validated, but sshd was not reloaded because
+      turtini_stig_allow_service_restart=false. Changes will apply after next reload/restart.
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_apply | bool
+    - not (turtini_stig_allow_service_restart | bool)
+  tags: [controls, auth, ssh-hardening]
+
+- name: "SSH Hardening | Audit effective sshd configuration after change (best-effort)"
+  ansible.builtin.shell: |
+    set -o pipefail
+    /usr/sbin/sshd -T 2>/dev/null | egrep -i '^(permitrootlogin|permitemptypasswords|passwordauthentication|kbdinteractiveauthentication|gssapiauthentication|x11forwarding|maxauthtries|logingracetime|clientaliveinterval|clientalivecountmax)\b' || true
+  args:
+    executable: /bin/bash
+  register: turtini_sshd_effective_final
+  changed_when: false
+  when: _turtini_run_control | bool
+  tags: [controls, auth, ssh-hardening, audit]
+
+- name: "SSH Hardening | Report final effective settings (verbose)"
+  ansible.builtin.debug:
+    msg:
+      - "Final effective sshd settings (sshd -T):"
+      - "{{ (turtini_sshd_effective_final.stdout | default('')) | trim }}"
+  when:
+    - _turtini_run_control | bool
+    - turtini_stig_preflight_verbose | bool
+  tags: [controls, auth, ssh-hardening, audit]
