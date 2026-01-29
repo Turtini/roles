@@ -451,3 +451,45 @@
     _turtini_control_categories: [crypto]
     _turtini_run_control: true
   tags: [controls, fips, audit]
+
+- name: Controls | USB storage disable | Metadata
+  ansible.builtin.include_tasks: controls/usb_storage_disable_meta.yml
+  tags:
+    - controls
+    - hardware
+    - usb
+    - meta
+
+- name: Controls | USB storage disable
+  ansible.builtin.include_tasks: controls/usb_storage_disable.yml
+  vars:
+    _turtini_control_id: "usb-storage-disable"
+    _turtini_control_tags:
+      - hardware
+      - usb
+    _turtini_control_categories:
+      - hardware
+    _turtini_run_control: >-
+      {{
+        (not (turtini_stig_enable_control_selection | bool))
+        or
+        (
+          (
+            (_turtini_controls_include | length == 0)
+            or
+            (_turtini_control_id in _turtini_controls_include)
+          )
+          and
+          (
+            (_turtini_controls_exclude | length == 0)
+            or
+            (_turtini_control_id not in _turtini_controls_exclude)
+          )
+        )
+      }}
+  when: _turtini_run_control | bool
+  tags:
+    - controls
+    - hardware
+    - usb
+
