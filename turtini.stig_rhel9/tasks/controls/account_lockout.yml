@@ -1,41 +1,6 @@
 ---
-# Control: Account Lockout (pam_faillock)
-# Configured via /etc/security/faillock.conf on RHEL 9
-
-- name: "Control Metadata | account-lockout"
-  ansible.builtin.set_fact:
-    turtini_control_meta:
-      id: "account-lockout"
-      title: "Account lockout is enforced using pam_faillock"
-      stig:
-        rules: []   # TODO: map to exact RHEL 9 STIG Rule / Vuln IDs
-      severity: "medium"
-      cci:
-        - "TBD"
-      nist:
-        - "AC-7"
-      rationale: >-
-        Limiting failed logon attempts reduces the risk of brute-force password
-        guessing and supports baseline account protection requirements.
-      check: >-
-        Review /etc/security/faillock.conf and confirm deny, fail_interval,
-        unlock_time, and even_deny_root meet the site policy.
-      fix: >-
-        Configure /etc/security/faillock.conf with required values and ensure
-        pam_faillock is enabled via authselect.
-      implementation: >-
-        This control audits current faillock settings and, when apply mode is
-        enabled, enforces deny, fail_interval, unlock_time, and optionally
-        even_deny_root.
-      notes:
-        - "This control does not rewrite PAM stacks; it relies on authselect defaults."
-        - "Changes may affect user experience; test in non-production environments."
-
-- name: "Account Lockout | Metadata (verbose)"
-  ansible.builtin.debug:
-    var: turtini_control_meta
-  when: turtini_stig_preflight_verbose | bool
-  tags: [controls, auth, account-lockout, meta]
+# Control implementation: Account Lockout (pam_faillock)
+# Enforces settings in /etc/security/faillock.conf on RHEL 9
 
 - name: "Account Lockout | Verify faillock.conf exists"
   ansible.builtin.stat:
@@ -146,3 +111,4 @@
       - "{{ (turtini_faillock_final.stdout | default('')) | trim }}"
   when: turtini_stig_preflight_verbose | bool
   tags: [controls, auth, account-lockout, audit]
+
