@@ -55,3 +55,12 @@ turtini_stig_faillock_even_deny_root: true
 # INACTIVE = number of days after password expires until the account is disabled
 # -1 means never disable; 35 is a common compliance baseline.
 turtini_stig_useradd_inactive_days: 35
+
+# Password complexity targets (pwquality)
+turtini_stig_pwquality_minlen: 15
+turtini_stig_pwquality_minclass: 4
+turtini_stig_pwquality_dcredit: -1
+turtini_stig_pwquality_ucredit: -1
+turtini_stig_pwquality_lcredit: -1
+turtini_stig_pwquality_ocredit: -1
+
