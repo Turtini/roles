@@ -1,0 +1,29 @@
+---
+- name: "Control Metadata | sudo-hardening"
+  ansible.builtin.set_fact:
+    turtini_control_meta:
+      id: "sudo-hardening"
+      title: "Sudo usage is logged and securely configured"
+      stig:
+        rules: []   # TODO: map to RHEL 9 STIG IDs
+      severity: "medium"
+      cci:
+        - "TBD"
+      nist:
+        - "AC-6"
+        - "AU-2"
+      rationale: >-
+        Proper sudo configuration ensures privileged actions are logged,
+        attributable, and resistant to misuse.
+      check: >-
+        Review /etc/sudoers and /etc/sudoers.d for logging, secure path,
+        and unsafe defaults.
+      fix: >-
+        Configure sudo to log all commands, enforce a secure execution
+        path, and disable legacy unsafe options.
+      implementation: >-
+        This control audits sudo configuration and enforces safe defaults
+        when apply mode is enabled.
+      notes:
+        - "NOPASSWD entries are not modified by default."
+        - "requiretty is disabled to support automation."
