@@ -33,6 +33,9 @@
         - "Changes to SSH can lock out administrators if misconfigured."
         - "Reload of sshd is gated by turtini_stig_allow_service_restart."
         - "Defaults may need tuning for environments using Kerberos/GSSAPI or password auth."
+        - "Defaults assume CAC/PIV or SSH key-based authentication."
+        - "PasswordAuthentication may be enabled per site policy if required."
+        - "GSSAPIAuthentication is disabled by default but may be enabled in Kerberos environments."
 
 - name: "SSH Hardening | Metadata (verbose)"
   ansible.builtin.debug:
