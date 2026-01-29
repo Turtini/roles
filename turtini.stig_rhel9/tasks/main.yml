@@ -188,3 +188,69 @@
     - controls
     - auth
     - account-lockout
+
+- name: Controls | Inactive account disable (/etc/default/useradd)
+  ansible.builtin.include_tasks: controls/inactive_account_disable.yml
+  vars:
+    _turtini_control_id: "inactive-account-disable"
+    _turtini_control_tags:
+      - auth
+      - inactive-account-disable
+    _turtini_control_categories:
+      - auth
+    _turtini_run_control: >-
+      {{
+        (not (turtini_stig_enable_control_selection | bool))
+        or
+        (
+          (
+            (_turtini_controls_include | length == 0)
+            or
+            (_turtini_control_id in _turtini_controls_include)
+          )
+          and
+          (
+            (_turtini_controls_exclude | length == 0)
+            or
+            (_turtini_control_id not in _turtini_controls_exclude)
+          )
+          and
+          (
+            (_turtini_tags_include | length == 0)
+            or
+            ((_turtini_control_tags | default([]))
+              | intersect(_turtini_tags_include)
+              | length > 0)
+          )
+          and
+          (
+            (_turtini_tags_exclude | length == 0)
+            or
+            ((_turtini_control_tags | default([]))
+              | intersect(_turtini_tags_exclude)
+              | length == 0)
+          )
+          and
+          (
+            (_turtini_categories_include | length == 0)
+            or
+            ((_turtini_control_categories | default([]))
+              | intersect(_turtini_categories_include)
+              | length > 0)
+          )
+          and
+          (
+            (_turtini_categories_exclude | length == 0)
+            or
+            ((_turtini_control_categories | default([]))
+              | intersect(_turtini_categories_exclude)
+              | length == 0)
+          )
+        )
+      }}
+  when: _turtini_run_control | bool
+  tags:
+    - controls
+    - auth
+    - inactive-account-disable
+
