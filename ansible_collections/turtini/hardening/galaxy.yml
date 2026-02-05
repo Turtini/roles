@@ -1,0 +1,18 @@
+namespace: turtini
+name: hardening
+version: 0.1.0
+description: Hardening and compliance automation for public sector and regulated environments.
+readme: README.md
+authors:
+  - Turtini
+license:
+  - Apache-2.0
+tags:
+  - security
+  - hardening
+  - compliance
+  - stig
+  - rhel
+repository: https://github.com/Turtini/roles
+issues: https://github.com/Turtini/roles/issues
+homepage: https://turtini.com/github/roles
