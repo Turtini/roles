@@ -1,0 +1,11 @@
+galaxy_info:
+  role_name: stig_rhel9
+  namespace: turtini
+  author: Turtini
+  description: DISA STIG-aligned configuration for RHEL 9
+  license: Apache-2.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
