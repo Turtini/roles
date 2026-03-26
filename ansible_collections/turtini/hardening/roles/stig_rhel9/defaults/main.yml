@@ -94,4 +94,3 @@ turtini_stig_removable_mount_required_options:
   - nodev
   - nosuid
   - noexec
-
