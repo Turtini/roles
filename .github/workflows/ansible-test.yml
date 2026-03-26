@@ -1,0 +1,34 @@
+name: Ansible collection CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  sanity:
+    name: Sanity (stable-2.20)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ansible-test sanity
+        uses: ansible-community/ansible-test-gh-action@release/v1
+        with:
+          ansible-core-version: stable-2.20
+          testing-type: sanity
+          pull-request-change-detection: false
+
+  devel-sanity:
+    name: Sanity (devel)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Run ansible-test sanity against devel
+        uses: ansible-community/ansible-test-gh-action@release/v1
+        with:
+          ansible-core-version: devel
+          testing-type: sanity
+          pull-request-change-detection: false
