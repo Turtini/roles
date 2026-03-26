@@ -22,13 +22,13 @@ turtini_stig_supported_distributions:
   - OracleLinux
   - CentOS
 
-# Safety toggles / patterns we’ll use as we add controls
+# Safety toggles
 # These allow "opt-in" for higher-impact
 turtini_stig_allow_reboot: false
 turtini_stig_allow_service_restart: true
 
 # Tagging / control selection patterns (future-friendly)
-# When true, we’ll allow selecting subsets of controls by category/tag.
+# When true, allow selecting subsets of controls by category/tag.
 turtini_stig_enable_control_selection: false
 
 # Control selection (optional)
