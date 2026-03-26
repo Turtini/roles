@@ -111,4 +111,3 @@
       - "{{ (turtini_faillock_final.stdout | default('')) | trim }}"
   when: turtini_stig_preflight_verbose | bool
   tags: [controls, auth, account-lockout, audit]
-
