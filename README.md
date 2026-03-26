@@ -23,6 +23,8 @@ Reference implementation of selected DISA STIG-aligned controls for **RHEL 9**.
 
 ➡️ `./turtini.stig_rhel9`
 
+Tested with ansible-test against stable ansible-core and weekly against devel for forward compatibility.
+
 ---
 
 ## License
