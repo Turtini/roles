@@ -23,7 +23,7 @@ turtini_stig_supported_distributions:
   - CentOS
 
 # Safety toggles / patterns we’ll use as we add controls
-# These allow “opt-in” for higher-impact changes without making the role scary.
+# These allow "opt-in" for higher-impact
 turtini_stig_allow_reboot: false
 turtini_stig_allow_service_restart: true
 
