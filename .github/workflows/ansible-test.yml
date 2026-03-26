@@ -6,7 +6,7 @@ on:
       - main
   pull_request:
   schedule:
-    - cron: "0 6 * * 1" # every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
   workflow_dispatch:
 
 jobs:
@@ -17,6 +17,7 @@ jobs:
       - name: Run ansible-test sanity
         uses: ansible-community/ansible-test-gh-action@release/v1
         with:
+          collection-root: ansible_collections/turtini/hardening
           ansible-core-version: stable-2.20
           testing-type: sanity
           pull-request-change-detection: false
@@ -29,6 +30,7 @@ jobs:
       - name: Run ansible-test sanity against devel
         uses: ansible-community/ansible-test-gh-action@release/v1
         with:
+          collection-root: ansible_collections/turtini/hardening
           ansible-core-version: devel
           testing-type: sanity
           pull-request-change-detection: false
